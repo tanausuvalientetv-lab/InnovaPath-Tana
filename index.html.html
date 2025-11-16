@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InnovaPath: Formación en Anatomía Patológica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: "Calm Professional" (Tailwind: slate, sky, bg-slate-50) -->
+    <!-- Application Structure Plan: 
+        - Estructura: SPA con barra de navegación superior fija (`sticky`). Los enlaces de navegación ("Inicio", "Programas", "Precios", "Ventajas", "Laboratorios", "Audiencia", "Contacto") utilizan el sistema de anclaje de HTML (`href="#id"`) con `scroll-behavior: smooth` para un desplazamiento suave.
+        - Interacciones Clave:
+            1. Navegación Suave: Clics en la barra de navegación desplazan la vista a la sección correspondiente.
+            2. Estado Activo de Navegación: Un `IntersectionObserver` de JavaScript detecta qué sección está en pantalla y resalta el enlace correspondiente en la barra de navegación.
+            3. Explorador de Programas Interactivo: La sección "Programas" reemplaza la tabla estática por un explorador dinámico, actualizando el contenido al hacer clic.
+        - Justificación: La adición de la sección de Precios en una posición central (después de ver los programas) sigue un flujo de venta lógico. El diseño de tarjetas de precio es claro y facilita la comparación, ayudando al usuario a tomar una decisión informada.
+    -->
+    <!-- Visualization & Content Choices:
+        - Info: "Por qué InnovaPath" (Compromisos). Goal: Informar (Valor Central). Viz/Method: Tarjetas en 2 columnas (HTML/Tailwind) con iconos Unicode (🎯, 📈). Interaction: Estática. Justification: Presentación clara y concisa del valor.
+        - Info: "Programas de Especialización" (3 cursos). Goal: Organizar e Informar. Viz/Method: "Pestañas" interactivas (Botones). Interaction: Clic de usuario actualiza el contenido. Justification: Aísla la información y reduce la carga cognitiva.
+        - Info: "Precios y Tarifas" (NUEVA). Goal: Informar (Coste/Duración). Viz/Method: Tarjetas de precios (HTML/Tailwind) con duración y descripción. Interaction: Estática. Justification: Clara diferenciación visual de las ofertas.
+        - Info: Desglose conceptual de tipos de programas. Goal: Informar (Visualmente). Viz/Method: Gráfico de Donut (Chart.js/Canvas) "Enfoque Formativo". Interaction: Tooltips al pasar el ratón. Justification: Síntesis visual de los tipos de formación. Library: Chart.js (Canvas).
+        - Info: "Ventajas Exclusivas". Goal: Informar. Viz/Method: Rejilla de 3 columnas (HTML/Tailwind) con iconos Unicode (👨‍🏫, 💻, 🤝). Interaction: Estática. Justification: Resumen visualmente atractivo y escaneable de los beneficios.
+        - Info: "Instalaciones y Tecnología". Goal: Informar sobre Recursos. Viz/Method: Rejilla de 3 columnas (HTML/Tailwind) con iconos Unicode (🔬, 💻, 🧪). Interaction: Estática. Justification: Destaca el valor del entorno práctico de aprendizaje.
+        - Info: "Dirigido a:". Goal: Informar. Viz/Method: Rejilla de 2x2 (HTML/Tailwind). Interaction: Estática. Justification: Más limpio que una lista de viñetas.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: color 0.2s, border-bottom-color 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link.active, .nav-link:hover {
+            color: #0284c7;
+            border-bottom-color: #0284c7;
+        }
+        .program-btn {
+            transition: all 0.2s;
+        }
+        .program-btn.active {
+            background-color: #0ea5e9;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Header / Barra de Navegación -->
+    <header class="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm shadow-sm">
+        <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 flex items-center">
+                    <!-- LOGO REVERTIDO A TEXTO -->
+                    <span class="font-bold text-2xl text-sky-600">InnovaPath</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#inicio" data-target="inicio" class="nav-link active px-3 py-2 rounded-md text-sm font-medium text-slate-700">Inicio</a>
+                        <a href="#programas" data-target="programas" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Programas</a>
+                        <a href="#precios" data-target="precios" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Precios</a>
+                        <a href="#ventajas" data-target="ventajas" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Ventajas</a>
+                        <a href="#laboratorios" data-target="laboratorios" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Laboratorios</a>
+                        <a href="#audiencia" data-target="audiencia" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Audiencia</a>
+                        <a href="#contacto" data-target="contacto" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Contacto</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <a href="#contacto" class="bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-sky-700 transition">Contacto</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main>
+
+        <!-- Sección: Inicio -->
+        <section id="inicio" class="pt-24 pb-16">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto">
+                    <h1 class="text-4xl md:text-5xl font-bold text-slate-900">Liderando la Excelencia en Diagnóstico Histopatológico</h1>
+                    <p class="mt-4 text-xl text-slate-600">Su carrera en Anatomía Patológica, redefinida.</p>
+                </div>
+
+                <div class="mt-16 max-w-5xl mx-auto">
+                    <h2 class="text-3xl font-semibold text-center mb-10">🔬 ¿Por qué InnovaPath?</h2>
+                    <p class="text-lg text-center text-slate-600 mb-12 max-w-3xl mx-auto">
+                        En InnovaPath, transformamos la actualización profesional en resultados medibles. Somos fundados por expertos con experiencia en laboratorios de referencia y centros de investigación, enfocados en optimizar su rendimiento.
+                    </p>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                            <span class="text-4xl">🎯</span>
+                            <h3 class="text-2xl font-semibold mt-4 mb-2">Precisión Diagnóstica</h3>
+                            <p class="text-slate-600">Dotamos a los profesionales de los protocolos más recientes para la identificación y clasificación de tumores, asegurando la máxima fiabilidad en el diagnóstico.</p>
+                        </div>
+                        <div class="bg-white p-8 rounded-xl shadow-lg border border-slate-200">
+                            <span class="text-4xl">📈</span>
+                            <h3 class="text-2xl font-semibold mt-4 mb-2">Eficacia Operativa</h3>
+                            <p class="text-slate-600">Optimizamos los procesos histológicos y citológicos de su laboratorio, mejorando la eficiencia, reduciendo tiempos y asegurando la calidad de la muestra.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección: Programas -->
+        <section id="programas" class="py-20 bg-white">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-slate-900">👑 Nuestros Programas de Alta Especialización</h2>
+                    <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">
+                        Nuestra oferta formativa cubre las necesidades más críticas del sector. Explore nuestros programas destacados haciendo clic en cada uno para ver los detalles.
+                    </p>
+                </div>
+
+                <div class="mt-16 grid lg:grid-cols-2 gap-12 items-center">
+                    <!-- Explorador Interactivo de Programas y Generador de Casos -->
+                    <div class="flex flex-col">
+                        <div class="flex flex-col space-y-4">
+                            <button data-program="deteccion" class="program-btn active w-full text-left p-6 bg-slate-100 rounded-lg border border-slate-200 hover:bg-slate-200">
+                                <h4 class="text-xl font-semibold text-sky-700">Alta Especialización en Detección Molecular de Tumores</h4>
+                            </button>
+                            <button data-program="bioetica" class="program-btn w-full text-left p-6 bg-slate-100 rounded-lg border border-slate-200 hover:bg-slate-200">
+                                <h4 class="text-xl font-semibold text-sky-700">Bioética y Calidad en el Laboratorio de Patología</h4>
+                            </button>
+                            <button data-program="talleres" class="program-btn w-full text-left p-6 bg-slate-100 rounded-lg border border-slate-200 hover:bg-slate-200">
+                                <h4 class="text-xl font-semibold text-sky-700">Talleres Intensivos de Histología Avanzada</h4>
+                            </button>
+                        </div>
+                        
+                        <div class="mt-8 bg-slate-50 p-8 rounded-xl border border-slate-200">
+                            <h3 id="programTitle" class="text-2xl font-bold text-slate-900 mb-4"></h3>
+                            <p id="programObjetivo" class="text-lg text-slate-700 mb-4"></p>
+                            <span id="programCert" class="inline-block bg-sky-100 text-sky-800 font-medium px-4 py-1 rounded-full"></span>
+                            
+                            <!-- Área de contenido limpia sin la funcionalidad de Gemini -->
+                            <div class="mt-6 pt-4 border-t border-slate-200">
+                                <p class="text-sm text-slate-600 italic">Conozca los objetivos y la certificación de cada programa haciendo clic en el título.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visualización: Gráfico de Donut -->
+                    <div class="flex flex-col items-center">
+                        <h3 class="text-2xl font-semibold text-center mb-6">Enfoque Formativo</h3>
+                        <div class="chart-container">
+                            <canvas id="programFocusChart"></canvas>
+                        </div>
+                        <p class="text-center text-slate-600 mt-4 max-w-sm">
+                            Nuestros programas equilibran técnicas de vanguardia, gestión de la calidad y habilidades prácticas esenciales.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección: Precios y Tarifas (NUEVA) -->
+        <section id="precios" class="py-20 bg-slate-50">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-slate-900">💰 Precios y Modalidades de Formación</h2>
+                    <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">
+                        Invierta en su futuro con programas estructurados y precios competitivos. Todos los precios son por persona.
+                    </p>
+                </div>
+
+                <div class="mt-16 grid md:grid-cols-3 gap-8 text-center">
+                    
+                    <!-- Tarifa 1: Taller Intensivo -->
+                    <div class="bg-white p-8 rounded-xl shadow-lg border-t-4 border-sky-500">
+                        <h3 class="text-2xl font-bold text-sky-700 mb-2">Taller Intensivo</h3>
+                        <p class="text-sm text-slate-500 mb-4">Formación práctica y concentrada.</p>
+                        <div class="my-6">
+                            <span class="text-4xl font-extrabold text-slate-900">350€</span>
+                            <span class="text-slate-500"> / curso</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-4">Duración: **15 horas** (2 días intensivos).</p>
+                        <ul class="text-left text-sm text-slate-700 space-y-2 mb-6">
+                            <li class="flex items-start"><span class="text-sky-500 mr-2">✓</span> Acceso a laboratorios simulados.</li>
+                            <li class="flex items-start"><span class="text-sky-500 mr-2">✓</span> Materiales y reactivos incluidos.</li>
+                            <li class="flex items-start"><span class="text-sky-500 mr-2">✓</span> Certificado de participación.</li>
+                        </ul>
+                        <a href="#contacto" class="block bg-sky-600 text-white font-bold py-3 rounded-lg hover:bg-sky-700 transition">Inscribirse</a>
+                    </div>
+                    
+                    <!-- Tarifa 2: Especialización (Destacado) -->
+                    <div class="bg-white p-8 rounded-xl shadow-2xl border-t-4 border-sky-800 transform scale-105">
+                        <h3 class="text-2xl font-bold text-sky-800 mb-2">Especialización Avanzada</h3>
+                        <p class="text-sm text-slate-500 mb-4">El camino completo hacia el experto.</p>
+                        <div class="my-6">
+                            <span class="text-5xl font-extrabold text-slate-900">1.950€</span>
+                            <span class="text-slate-500"> / programa</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-4">Duración: **120 horas** (3 meses, blended).</p>
+                        <ul class="text-left text-sm text-slate-700 space-y-2 mb-6">
+                            <li class="flex items-start"><span class="text-sky-500 mr-2">✓</span> Módulos online y presenciales.</li>
+                            <li class="flex items-start"><span class="text-sky-500 mr-2">✓</span> Tutorías personalizadas con patólogos expertos.</li>
+                            <li class="flex items-start"><span class="text-sky-500 mr-2">✓</span> Diploma de Especialista Universitario.</li>
+                        </ul>
+                        <a href="#contacto" class="block bg-sky-800 text-white font-bold py-3 rounded-lg hover:bg-sky-900 transition">Más Información</a>
+                    </div>
+
+                    <!-- Tarifa 3: Consultoría/In House -->
+                    <div class="bg-white p-8 rounded-xl shadow-lg border-t-4 border-sky-500">
+                        <h3 class="text-2xl font-bold text-sky-700 mb-2">Formación In House</h3>
+                        <p class="text-sm text-slate-500 mb-4">Tarifa para laboratorios (personalizada).</p>
+                        <div class="my-6">
+                            <span class="text-4xl font-extrabold text-slate-900">Consultar</span>
+                            <span class="text-slate-500"> / proyecto</span>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-4">Duración: **A Convenir** (Según necesidades).</p>
+                        <ul class="text-left text-sm text-slate-700 space-y-2 mb-6">
+                            <li class="flex items-start"><span class="text-sky-500 mr-2">✓</span> Auditoría de protocolos inicial.</li>
+                            <li class="flex items-start"><span class="text-sky-500 mr-2">✓</span> Desarrollo de currículo a medida.</li>
+                            <li class="flex items-start"><span class="text-sky-500 mr-2">✓</span> Certificación ISO de procesos.</li>
+                        </ul>
+                        <a href="#contacto" class="block bg-sky-600 text-white font-bold py-3 rounded-lg hover:bg-sky-700 transition">Solicitar Presupuesto</a>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección: Ventajas -->
+        <section id="ventajas" class="py-20 bg-white">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-slate-900">✅ Innovación y Confianza</h2>
+                    <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">
+                        Le ofrecemos ventajas exclusivas diseñadas para el profesional sanitario moderno, garantizando una formación relevante y aplicable.
+                    </p>
+                </div>
+
+                <div class="mt-16 grid md:grid-cols-3 gap-8 text-center">
+                    <div class="bg-slate-50 p-8 rounded-xl shadow-lg border border-slate-200">
+                        <span class="text-5xl">👨‍🏫</span>
+                        <h3 class="text-2xl font-semibold mt-4 mb-2">Cuerpo Docente Experto</h3>
+                        <p class="text-slate-600">Equipo de patólogos y técnicos con experiencia hospitalaria real y acreditada en laboratorios de referencia.</p>
+                    </div>
+                    <div class="bg-slate-50 p-8 rounded-xl shadow-lg border border-slate-200">
+                        <span class="text-5xl">💻</span>
+                        <h3 class="text-2xl font-semibold mt-4 mb-2">Metodología Flexible</h3>
+                        <p class="text-slate-600">Formación presencial, *blended* y 100% online, diseñada para adaptarse a los horarios y turnos del personal sanitario.</p>
+                    </div>
+                    <div class="bg-slate-50 p-8 rounded-xl shadow-lg border border-slate-200">
+                        <span class="text-5xl">🤝</span>
+                        <h3 class="text-2xl font-semibold mt-4 mb-2">Colaboraciones Estratégicas</h3>
+                        <p class="text-slate-600">Alianzas con centros de investigación para asegurar la vigencia y vanguardia de todos nuestros contenidos formativos.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección: Instalaciones y Tecnología -->
+        <section id="laboratorios" class="py-20 bg-slate-50">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-slate-900">🧪 Laboratorios y Tecnología de Vanguardia</h2>
+                    <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">
+                        Aprenda en un entorno que simula un laboratorio de diagnóstico de alta complejidad, utilizando la misma instrumentación que encontrará en los hospitales y centros de investigación líderes.
+                    </p>
+                </div>
+
+                <div class="mt-16 grid md:grid-cols-3 gap-8 text-center">
+                    <div class="p-6 rounded-xl bg-sky-50 border border-sky-200">
+                        <span class="text-5xl">🔬</span>
+                        <h3 class="text-xl font-semibold mt-4 mb-2 text-sky-800">Equipos de Microscopía Avanzada</h3>
+                        <p class="text-slate-600 text-sm">Estaciones con microscopios digitales multiobservador y sistemas de análisis de imágenes para patología digital.</p>
+                    </div>
+                    <div class="p-6 rounded-xl bg-sky-50 border border-sky-200">
+                        <span class="text-5xl">🧪</span>
+                        <h3 class="text-xl font-semibold mt-4 mb-2 text-sky-800">Procesamiento y Tinción Automática</h3>
+                        <p class="text-slate-600 text-sm">Disponibilidad de procesadores de tejidos cerrados y auto-tinción de Inmunohistoquímica (IHC) para protocolos moleculares.</p>
+                    </div>
+                    <div class="p-6 rounded-xl bg-sky-50 border border-sky-200">
+                        <span class="text-5xl">🖥️</span>
+                        <h3 class="text-xl font-semibold mt-4 mb-2 text-sky-800">Aulas de Simulación Clínica</h3>
+                        <p class="text-slate-600 text-sm">Espacios dedicados al análisis de casos virtuales y bioinformática, equipados con software de gestión de muestras (LIMS).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Sección: Audiencia -->
+        <section id="audiencia" class="py-20 bg-white">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-slate-900">🎯 Dirigido a Profesionales como Usted</h2>
+                    <p class="mt-4 text-lg text-slate-600 max-w-3xl mx-auto">
+                        Nuestros programas están diseñados para un amplio espectro de profesionales del sector de la histopatología y la investigación oncológica.
+                    </p>
+                </div>
+
+                <div class="mt-16 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-sky-100 p-6 rounded-lg border border-sky-200 text-center">
+                        <h3 class="text-xl font-semibold text-sky-800">Patólogos y Residentes</h3>
+                    </div>
+                    <div class="bg-sky-100 p-6 rounded-lg border border-sky-200 text-center">
+                        <h3 class="text-xl font-semibold text-sky-800">Técnicos de Laboratorio</h3>
+                    </div>
+                    <div class="bg-sky-100 p-6 rounded-lg border border-sky-200 text-center">
+                        <h3 class="text-xl font-semibold text-sky-800">Biólogos e Investigadores</h3>
+                    </div>
+                    <div class="bg-sky-100 p-6 rounded-lg border border-sky-200 text-center">
+                        <h3 class="text-xl font-semibold text-sky-800">Gestores de Laboratorios</h3>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección: Contacto -->
+        <section id="contacto" class="py-24 bg-sky-700 text-white">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="text-4xl font-bold">📢 ¡Impulsa tu Carrera Hoy!</h2>
+                <p class="mt-4 text-2xl text-sky-100">Actualiza tus protocolos. Perfecciona tu diagnóstico. Impulsa tu carrera.</p>
+                <p class="mt-8 text-lg text-sky-200">
+                    Contacta con nosotros para recibir información detallada sobre los programas, inscripciones y consultorías para laboratorios.
+                </p>
+                
+                <div class="mt-10 flex flex-col sm:flex-row gap-6 justify-center text-lg">
+                    <div class="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
+                        <strong>Web:</strong> <a href="#" class="font-medium text-white hover:underline">www.innovapath.es</a>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
+                        <strong>Email:</strong> <a href="#" class="font-medium text-white hover:underline">info@innovapath.es</a>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm p-4 rounded-lg">
+                        <strong>Teléfono:</strong> <span class="font-medium">900 123 456</span>
+                    </div>
+                </div>
+
+                <div class="mt-16 pt-8 border-t border-sky-600">
+                    <h4 class="text-md font-semibold text-sky-100">Nota Legal y Profesionalidad</h4>
+                    <p class="mt-2 text-sm text-sky-200 max-w-3xl mx-auto">
+                        InnovaPath es una empresa de servicios de formación y consultoría especializada. Esta publicidad no ofrece diagnóstico ni tratamiento médico, sino herramientas educativas y técnicas para profesionales del sector sanitario. Nuestros programas se mantienen actualizados según los últimos protocolos y normativas vigentes en España.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Datos de los Programas ---
+            const programData = {
+                deteccion: {
+                    title: "Alta Especialización en Detección Molecular de Tumores",
+                    objetivo: "Dominio de las últimas técnicas de Inmunohistoquímica (IHC) y Hibridación in situ (FISH) para diagnósticos de máxima precisión.",
+                    cert: "Diploma de Especialista"
+                },
+                bioetica: {
+                    title: "Bioética y Calidad en el Laboratorio de Patología",
+                    objetivo: "Profundización en la normativa española (LOPD, bioética) y protocolos de Calidad ISO en el procesamiento de muestras.",
+                    cert: "Módulo Certificado"
+                },
+                talleres: {
+                    title: "Talleres Intensivos de Histología Avanzada",
+                    objetivo: "Resolución de artefactos, optimización de la inclusión en parafina y manejo avanzado de útiles de procesamiento y análisis.",
+                    cert: "Taller Práctico"
+                }
+            };
+
+            // --- Elementos UI ---
+            const programButtons = document.querySelectorAll('.program-btn');
+            const titleDisplay = document.getElementById('programTitle');
+            const objetivoDisplay = document.getElementById('programObjetivo');
+            const certDisplay = document.getElementById('programCert');
+
+            // --- Lógica del Explorador de Programas ---
+            function updateProgramView(programKey) {
+                const data = programData[programKey];
+                titleDisplay.textContent = data.title;
+                objetivoDisplay.textContent = data.objetivo;
+                certDisplay.textContent = data.cert;
+                
+                // Lógica de estado activo para los botones
+                programButtons.forEach(btn => {
+                    if (btn.dataset.program === programKey) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+
+            programButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    updateProgramView(button.dataset.program);
+                });
+            });
+
+            // Inicializar con el primer programa
+            updateProgramView('deteccion');
+
+            // --- Lógica del Gráfico (Chart.js) ---
+            const ctx = document.getElementById('programFocusChart').getContext('2d');
+            const programFocusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Técnicas Avanzadas (Molecular)', 'Calidad y Bioética', 'Habilidades Prácticas (Histología)'],
+                    datasets: [{
+                        label: 'Enfoque Formativo',
+                        data: [40, 30, 30],
+                        backgroundColor: [
+                            '#0ea5e9', // sky-500
+                            '#0284c7', // sky-600
+                            '#38bdf8'  // sky-400
+                        ],
+                        borderColor: '#ffffff',
+                        borderWidth: 4,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#475569',
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+
+            // --- Lógica de Navegación Activa (IntersectionObserver) ---
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.4
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const targetId = entry.target.id;
+                        navLinks.forEach(link => {
+                            if (link.dataset.target === targetId) {
+                                link.classList.add('active');
+                            } else {
+                                link.classList.remove('active');
+                            }
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+
+        });
+    </script>
+
+</body>
+</html>
